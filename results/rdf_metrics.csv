@@ -1,0 +1,2 @@
+rmse_valid_range,rmse_positive_target,mae_valid_range,mae_positive_target,rmse_primary,mae_primary,primary_label,min_r,max_r,epsilon,final_rdf_path,final_rdf_iteration,final_potential_path,final_potential_iteration
+6.137123758365117,6.137123758365117,4.182561744247176,4.182561744247176,6.137123758365117,4.182561744247176,positive-target bins,2.0,20.0,1e-08,data/runs/rdf_iteration_11.csv,11,data/runs/potential_iteration_11.csv,11

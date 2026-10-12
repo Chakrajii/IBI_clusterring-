@@ -171,13 +171,13 @@ monte_carlo:
   seed: 13579
 
   # One MC iteration = this many attempted updates.
-  updates_per_iteration: 500
+  updates_per_iteration: 1000
 
   # Schedule:
   #   1 initial MC iteration before first IBI update.
   #   Then 20 MC iterations between subsequent IBI updates.
-  initial_iterations_before_first_update: 1
-  iterations_between_updates: 20
+  initial_iterations_before_first_update: 5
+  iterations_between_updates: 50
 
   # Proposal displacement.
   # Moves are snapped to the grid.
