@@ -1,0 +1,12 @@
+# Core numerical and data handling
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Configuration file parsing
+PyYAML>=6.0
+
+# Plotting and visualization
+matplotlib>=3.7.0
+
+# Optional but useful for interpolation/smoothing utilities
+scipy>=1.10.0

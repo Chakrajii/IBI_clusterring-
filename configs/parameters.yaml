@@ -1,0 +1,248 @@
+# =============================================================================
+# IBI Cluster Reconstruction - Run Parameters
+# =============================================================================
+# This file defines all configurable values for the project.
+# Units are reduced units unless otherwise stated.
+# k_B is taken as 1.0 in reduced units.
+
+# -----------------------------------------------------------------------------
+# Global reproducibility
+# -----------------------------------------------------------------------------
+random_seed: 20240601
+
+# -----------------------------------------------------------------------------
+# Output locations
+# -----------------------------------------------------------------------------
+paths:
+  data_dir: "data"
+  runs_dir: "data/runs"
+  results_dir: "results"
+
+  target_positions: "data/target_positions.csv"
+  target_rdf: "data/target_rdf.csv"
+  initial_potential: "data/potential_initial.csv"
+  random_initial_positions: "data/random_initial_positions.csv"
+
+  run_summary: "results/run_summary.csv"
+
+  rdf_comparison_plot: "results/rdf_comparison.png"
+  potential_comparison_plot: "results/potential_comparison.png"
+  rdf_error_plot: "results/rdf_error.png"
+
+# -----------------------------------------------------------------------------
+# Physical / simulation system
+# -----------------------------------------------------------------------------
+system:
+  n_particles: 50
+  particle_radius: 1.0
+
+  # Hard-core minimum center-to-center separation.
+  min_separation: 2.0
+
+  box:
+    Lx: 100.0
+    Ly: 100.0
+
+  # Discretization of allowed particle centers.
+  grid_spacing: 0.1
+
+  # If false, grid coordinates are:
+  #   0.0, 0.1, ..., 99.9
+  # giving 1000 grid points per axis.
+  # If true, coordinates include both 0.0 and 100.0.
+  include_endpoints: false
+
+  # Periodic boundaries are recommended for a bulk-like RDF estimator.
+  boundary_conditions: "periodic"
+
+  # Temperature in reduced units.
+  # Keep this fixed throughout the run.
+  temperature: 1.0
+
+  # Boltzmann constant in reduced units.
+  k_B: 1.0
+
+# -----------------------------------------------------------------------------
+# Target cluster generation
+# -----------------------------------------------------------------------------
+target_cluster:
+  seed: 12345
+
+  # First particle position.
+  initial_center: [50.0, 50.0]
+
+  # Growth-based candidate generation.
+  # New particles are chosen from available grid points near existing particles.
+  candidate_generation:
+    # Candidate points must be at least min_separation away from all particles.
+    min_distance_to_existing: 2.0
+
+    # Candidate points are searched within this distance of any existing particle.
+    # This encourages compact cluster growth.
+    max_distance_to_existing: 2.6
+
+    # Safety limit for trying to find valid candidates.
+    max_attempts_per_particle: 200000
+
+# -----------------------------------------------------------------------------
+# Radial distribution function estimator
+# -----------------------------------------------------------------------------
+rdf:
+  # Bin width Delta r.
+  bin_width: 0.1
+
+  # RDF range.
+  # For a 100x100 periodic square box, the minimum-image distance maximum is 50.
+  # Here we use a smaller range because the target structure is a compact cluster
+  # and the interaction potential is cut off at a finite range.
+  r_min: 0.0
+  r_max: 20.0
+
+  # Bins below the hard-core diameter should have zero probability.
+  hard_core_radius: 2.0
+
+  # Normalization choice.
+  #
+  # "global_box" uses rho = N / box_area.
+  # This is the standard periodic bulk-style normalization, even though the
+  # target configuration is a cluster in a large box.
+  #
+  # The same convention must be used for target RDF, sampled RDFs, and IBI.
+  density_mode: "global_box"
+
+  # Numerical floor used before taking logarithms.
+  epsilon_floor: 1.0e-8
+
+  # Optional smoothing of RDF before taking logarithms or plotting.
+  smoothing:
+    enabled: true
+    method: "gaussian"
+    sigma_bins: 1.0
+
+    # Do not smooth the hard-core forbidden region into the allowed region.
+    min_r_for_smoothing: 2.0
+
+# -----------------------------------------------------------------------------
+# Pair potential representation
+# -----------------------------------------------------------------------------
+potential:
+  # Potential is tabulated on the same grid as the RDF.
+  bin_width: 0.1
+  r_min: 0.0
+  r_max: 20.0
+
+  # Cutoff for the pair potential.
+  # Beyond this distance the potential is treated as zero.
+  r_cut: 20.0
+
+  # Hard-core handling.
+  # Distances below min_separation are forbidden by construction.
+  # If they are encountered numerically, assign a very large repulsive value.
+  hard_core_repulsion_energy: 1.0e+6
+
+  # Initial potential from u0(r) = -k_B T log[g*(r)].
+  low_density_initialization:
+    # Floor for g*(r) before logarithm.
+    g_floor: 1.0e-8
+
+    # Clip very large initial repulsions to avoid overflow in MC weights.
+    max_initial_energy: 100.0
+
+  # Energy reference convention.
+  # "shift_at_cutoff" subtracts u(r_cut) so that u(r_cut) = 0.
+  energy_reference: "shift_at_cutoff"
+
+  # Interpolation used by MC when evaluating distances between tabulated bins.
+  interpolation: "linear"
+
+# -----------------------------------------------------------------------------
+# Random initial configuration for inverse-design test
+# -----------------------------------------------------------------------------
+random_initial_configuration:
+  seed: 54321
+
+  # Rejection sampling on the grid while enforcing min_separation.
+  max_attempts_per_particle: 500000
+
+# -----------------------------------------------------------------------------
+# Metropolis Monte Carlo
+# -----------------------------------------------------------------------------
+monte_carlo:
+  seed: 13579
+
+  # One MC iteration = this many attempted updates.
+  updates_per_iteration: 500
+
+  # Schedule:
+  #   1 initial MC iteration before first IBI update.
+  #   Then 20 MC iterations between subsequent IBI updates.
+  initial_iterations_before_first_update: 1
+  iterations_between_updates: 20
+
+  # Proposal displacement.
+  # Moves are snapped to the grid.
+  proposal:
+    # Maximum displacement in length units along each coordinate.
+    max_displacement: 1.0
+
+    # If true, proposed continuous displacements are rounded to the grid.
+    snap_to_grid: true
+
+  # Acceptance-ratio diagnostics.
+  # If acceptance falls far outside this range, consider tuning max_displacement.
+  target_acceptance_range: [0.20, 0.60]
+
+  # Boundary handling for moves.
+  boundary_conditions: "periodic"
+
+# -----------------------------------------------------------------------------
+# Iterative Boltzmann Inversion
+# -----------------------------------------------------------------------------
+ibi:
+  # Total number of potential updates.
+  n_updates: 11
+
+  # Damping factor alpha.
+  # 1.0 is the raw IBI update; smaller values improve stability.
+  damping_alpha: 0.5
+
+  # Floor for RDF values in the logarithm.
+  epsilon: 1.0e-8
+
+  # Update only reliable bins.
+  update_mask:
+    # Do not update forbidden hard-core bins.
+    min_r: 2.0
+
+    # Do not update beyond the potential cutoff / reliable RDF range.
+    max_r: 20.0
+
+    # If true, bins with zero target counts are not updated.
+    # With regularization, this can remain false, but masking is safer.
+    require_positive_target: true
+
+    # Minimum sampled pair counts in the current RDF bin before updating.
+    min_sampled_counts: 1
+
+  # Optional smoothing applied to the IBI correction.
+  correction_smoothing:
+    enabled: true
+    method: "gaussian"
+    sigma_bins: 1.0
+
+  # Never allow IBI to remove the hard-core constraint.
+  preserve_hard_core: true
+  hard_core_radius: 2.0
+
+# -----------------------------------------------------------------------------
+# Diagnostics and validation
+# -----------------------------------------------------------------------------
+diagnostics:
+  # Verify configurations after generation and after MC moves.
+  check_minimum_separation: true
+
+  # Save per-iteration RDF and potential files.
+  save_every_update: true
+
+  # Print progress information to stdout.
+  verbose: true
